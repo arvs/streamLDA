@@ -64,7 +64,7 @@ class FileCorpus(Corpus):
     def docs(self, num, deterministic = True):
         if deterministic:
             if self._counter > self.num_docs + num:
-                self._counter = 0
+                self.reset_counter()
             else:
                 sliced = [self[n] for n in xrange(self._counter, self._counter + num)]
                 self._increment_slice(num)
