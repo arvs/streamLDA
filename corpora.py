@@ -1,6 +1,5 @@
 
-
-class Corpus:
+class Corpus(object):
   def __init__(self, corpus_name):
     self._name = corpus_name
 

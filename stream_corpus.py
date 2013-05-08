@@ -25,6 +25,35 @@ from wikirandom import WikipediaCorpus
 from twenty_news import TwentyNewsCorpus
 from util import print_topics
 
+def process_corpus(batchsize, K, corpus, runs):
+    # Initialize the algorithm with alpha=1/K, eta=1/K, tau_0=1024, kappa=0.7
+    slda = streamlda.StreamLDA(K, 1./K, 1./K, 1., 0.7)
+
+    (test_set, test_names) = corpus.docs(batchsize * 5, False)
+
+    for iteration in xrange(0, runs):
+        print '-----------------------------------'
+        print '         Iteration %d              ' % iteration
+        print '-----------------------------------'
+        
+        # Get some new articles from the selected corpus
+        (docset, articlenames) = \
+            corpus.docs(batchsize)
+        # Give them to online LDA
+        (gamma, bound) = slda.update_lambda(docset)
+        # Compute an estimate of held-out perplexity
+        wordids = slda.recentbatch['wordids']
+        wordcts = slda.recentbatch['wordcts']
+        #(wordids, wordcts) = slda.parse_new_docs(docset)
+
+        if iteration % 10 == 0:
+            gamma_test, new_lambda = slda.do_e_step(test_set)
+            new_lambda = None
+            lhood = slda.batch_bound(gamma_test)
+
+            print_topics(slda._lambda, 10)
+            print "Held-out likelihood", lhood
+
 def main():
     """
     Applies streamLDA to test data, currently either 20 newsgroups or
@@ -47,35 +76,8 @@ def main():
     else:
         print 'options not supported. please try again.'
         sys.exit()
-    runs = int(sys.argv[2])        
-
-    # Initialize the algorithm with alpha=1/K, eta=1/K, tau_0=1024, kappa=0.7
-    slda = streamlda.StreamLDA(K, 1./K, 1./K, 1., 0.7)
-
-    (test_set, test_names) = corpus.docs(batchsize * 5, False)
-
-    for iteration in xrange(0, runs):
-        print '-----------------------------------'
-        print '         Iteration %d              ' % iteration
-        print '-----------------------------------'
-        
-        # Get some new articles from the selected corpus
-        (docset, articlenames) = \
-            corpus.docs(batchsize)
-        # Give them to online LDA
-        (gamma, bound) = slda.update_lambda(docset)
-        # Compute an estimate of held-out perplexity
-        wordids = slda.recentbatch['wordids']
-        wordcts = slda.recentbatch['wordcts']
-        #(wordids, wordcts) = slda.parse_new_docs(docset)
-
-        if iteration % 10 == 0:
-          gamma_test, new_lambda = slda.do_e_step(test_set)
-          new_lambda = None
-          lhood = slda.batch_bound(gamma_test)
-
-          print_topics(slda._lambda, 10)
-          print "Held-out likelihood", lhood
+    runs = int(sys.argv[2]) 
+    process_corpus(batchsize, K, corpus, runs)       
 
 if __name__ == '__main__':
     main()
